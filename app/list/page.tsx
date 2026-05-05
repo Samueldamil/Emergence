@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { IoArrowBack } from "react-icons/io5";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
