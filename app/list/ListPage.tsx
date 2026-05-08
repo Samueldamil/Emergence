@@ -33,12 +33,16 @@ export default function ListPage() {
                 navigator.geolocation.getCurrentPosition(async (position) => {
                     const { latitude, longitude } = position.coords;
 
+                    console.log("TYPE: ", type);
+                    console.log("LAT: ", latitude);
+                    console.log("LON:", longitude)
+
                     const query = `
                         [out:json];
                         (
-                            node["amenity"="${type}"](around:10000,${latitude},${longitude});
-                            way["amenity"="${type}"](around:10000,${latitude},${longitude});
-                            relation["amenity"="${type}"](around:10000,${latitude},${longitude});
+                            node["amenity"="${type}"](around:50000,${latitude},${longitude});
+                            way["amenity"="${type}"](around:50000,${latitude},${longitude});
+                            relation["amenity"="${type}"](around:50000,${latitude},${longitude});
                         );
                         out center;
                     `;
@@ -49,6 +53,11 @@ export default function ListPage() {
                     });
 
                     const data = await res.json();
+
+                    console.log("RAW DATA:", data);
+                    console.log("ELEMENTS: ", data.elements);
+                    console.log("COUNT: ", data.elements?.length);
+                    console.log(res.status);
 
                     const formatted = data.elements.map((item: any) => {
                         const address = [
@@ -75,6 +84,8 @@ export default function ListPage() {
                             distance: (distanceInMeters / 1000).toFixed(1) + "km",
                         };
                     }).filter(Boolean) as Place[];
+
+                    formatted.sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
 
                     setPlaces(formatted);
                     setLoading(false);
