@@ -50,25 +50,31 @@ export default function ListPage() {
 
                     const data = await res.json();
 
-                    const formatted: Place[] = data.elements.map((item: any) => {
+                    const formatted = data.elements.map((item: any) => {
                         const address = [
                             item.tags?.["addr:housenumber"],
                             item.tags?.["addr:street"],
                             item.tags?.["addr:city"],
                         ].filter(Boolean).join(", ");
 
-                        const distanceInMeters = getDistance({ latitude, longitude }, { latitude: item.lat, longitude: item.lon });
+                        
+                        const placeLat = item.lat || item.center?.lat;
+                        const placeLon = item.lon || item.center?.lon;
+
+                        if (!placeLat || !placeLon) return null;
+                        
+                        const distanceInMeters = getDistance({ latitude, longitude }, { latitude: placeLat, longitude: placeLon });
 
                         return {
                             id: item.id,
                             name: item.tags?.name || "Unnamed Place",
                             address: address || null,
                             phone: item.tags?.phone || null,
-                            lat: item.lat,
-                            lon: item.lon,
+                            lat: placeLat,
+                            lon: placeLon,
                             distance: (distanceInMeters / 1000).toFixed(1) + "km",
                         };
-                    });
+                    }).filter(Boolean) as Place[];
 
                     setPlaces(formatted);
                     setLoading(false);
