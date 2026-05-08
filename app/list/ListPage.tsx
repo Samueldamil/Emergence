@@ -23,6 +23,7 @@ export default function ListPage() {
     const type = searchParams.get('type');
 
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
     const [places, setPlaces] = useState<Place[]>([]);
 
     useEffect(() => {
@@ -47,10 +48,28 @@ export default function ListPage() {
                         out center;
                     `;
 
+                    const controller = new AbortController();
+
+                    const timeout = setTimeout(() => {
+                        controller.abort();
+                    }, 15000);
+
                     const res = await fetch("https://overpass-api.de/api/interpreter", {
                         method: "POST",
-                        body: query
+                        headers: {
+                            "Content-Type": "text/plain",
+                        },
+                        body: query,
+                        signal: controller.signal
                     });
+
+                    clearTimeout(timeout);
+
+                    if (!res.ok) {
+                        setError("Failed to fetch nearby places.");
+                        setLoading(false);
+                        return;
+                    }
 
                     const data = await res.json();
 
@@ -92,6 +111,7 @@ export default function ListPage() {
                 },
                 (error) => {
                     console.log(error);
+                    setError(error.message);
                     setLoading(false);
                 }, {
                     enableHighAccuracy: true,
@@ -117,6 +137,7 @@ export default function ListPage() {
             <h1 className="text-2xl font-bold mb-6 capitalize">Nearby {type?.replace("_", " ")}</h1>
 
             {loading && <p className="text-gray-600">Finding nearby services...</p>}
+            {error && (<p className="text-red-600 font-medium">{error}</p>)}
 
             {!loading && places.length === 0 && (<p className="text-gray-600">No places found nearby.</p>)}
 
