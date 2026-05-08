@@ -41,9 +41,8 @@ export default function ListPage() {
                     const query = `
                         [out:json];
                         (
-                            node["amenity"="${type}"](around:50000,${latitude},${longitude});
-                            way["amenity"="${type}"](around:50000,${latitude},${longitude});
-                            relation["amenity"="${type}"](around:50000,${latitude},${longitude});
+                            node["amenity"="${type}"](around:10000,${latitude},${longitude});
+                            way["amenity"="${type}"](around:10000,${latitude},${longitude});
                         );
                         out center;
                     `;
@@ -52,7 +51,7 @@ export default function ListPage() {
 
                     const timeout = setTimeout(() => {
                         controller.abort();
-                    }, 15000);
+                    }, 30000);
 
                     const res = await fetch("https://overpass-api.de/api/interpreter", {
                         method: "POST",
