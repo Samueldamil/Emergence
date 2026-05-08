@@ -35,8 +35,12 @@ export default function ListPage() {
 
                     const query = `
                         [out:json];
-                        node["amenity"="${type}"](around:3000,${latitude},${longitude});
-                        out;
+                        (
+                            node["amenity"="${type}"](around:10000,${latitude},${longitude});
+                            way["amenity"="${type}"](around:10000,${latitude},${longitude});
+                            relation["amenity"="${type}"](around:10000,${latitude},${longitude});
+                        );
+                        out center;
                     `;
 
                     const res = await fetch("https://overpass-api.de/api/interpreter", {
