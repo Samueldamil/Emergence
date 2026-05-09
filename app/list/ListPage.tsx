@@ -29,100 +29,79 @@ export default function ListPage() {
     useEffect(() => {
         if (!type) return;
 
-        const fetchPlaces = async () => {
+        const fetchPlaces = async (latitude: number, longitude: number) => {
             try {
-                navigator.geolocation.getCurrentPosition(async (position) => {
-                    const { latitude, longitude } = position.coords;
-
-                    console.log("TYPE: ", type);
-                    console.log("LAT: ", latitude);
-                    console.log("LON:", longitude)
-
-                    const query = `
-                        [out:json];
-                        (
-                            node["amenity"="${type}"](around:10000,${latitude},${longitude});
-                            way["amenity"="${type}"](around:10000,${latitude},${longitude});
-                        );
-                        out center;
-                    `;
-
-                    const controller = new AbortController();
-
-                    const timeout = setTimeout(() => {
-                        controller.abort();
-                    }, 30000);
-
-                    const res = await fetch("https://overpass-api.de/api/interpreter", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "text/plain",
-                        },
-                        body: query,
-                        signal: controller.signal
-                    });
-
-                    clearTimeout(timeout);
-
-                    if (!res.ok) {
-                        setError("Failed to fetch nearby places.");
-                        setLoading(false);
-                        return;
-                    }
-
-                    const data = await res.json();
-
-                    console.log("RAW DATA:", data);
-                    console.log("ELEMENTS: ", data.elements);
-                    console.log("COUNT: ", data.elements?.length);
-                    console.log(res.status);
-
-                    const formatted = data.elements.map((item: any) => {
-                        const address = [
-                            item.tags?.["addr:housenumber"],
-                            item.tags?.["addr:street"],
-                            item.tags?.["addr:city"],
-                        ].filter(Boolean).join(", ");
-
-                        
-                        const placeLat = item.lat || item.center?.lat;
-                        const placeLon = item.lon || item.center?.lon;
-
-                        if (!placeLat || !placeLon) return null;
-                        
-                        const distanceInMeters = getDistance({ latitude, longitude }, { latitude: placeLat, longitude: placeLon });
-
-                        return {
-                            id: item.id,
-                            name: item.tags?.name || "Unnamed Place",
-                            address: address || null,
-                            phone: item.tags?.phone || null,
-                            lat: placeLat,
-                            lon: placeLon,
-                            distance: (distanceInMeters / 1000).toFixed(1) + "km",
-                        };
-                    }).filter(Boolean) as Place[];
-
-                    formatted.sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
-
-                    setPlaces(formatted);
-                    setLoading(false);
-                },
-                (error) => {
-                    console.log(error);
-                    setError(error.message);
-                    setLoading(false);
-                }, {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0,
+                const res = await fetch("/api/nearby", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        lat: latitude,
+                        lon: longitude,
+                        type
+                    }),
                 });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    setError(data.error || "Failed to fetch places.");
+                    setLoading(false);
+                    return;
+                };
+
+                const formatted = data.elements.map((item: any) => {
+                    const address = [
+                        item.tags?.["addr:housenumber"],
+                        item.tags?.["addr:street"],
+                        item.tags?.["addr:city"],
+                    ].filter(Boolean).join(", ");
+
+                        
+                    const placeLat = item.lat || item.center?.lat;
+                    const placeLon = item.lon || item.center?.lon;
+
+                    if (!placeLat || !placeLon) return null;
+                        
+                    const distanceInMeters = getDistance({ latitude, longitude }, { latitude: placeLat, longitude: placeLon });
+
+                    return {
+                        id: item.id,
+                        name: item.tags?.name || "Unnamed Place",
+                        address: address || null,
+                        phone: item.tags?.phone || null,
+                        lat: placeLat,
+                        lon: placeLon,
+                        distance: (distanceInMeters / 1000).toFixed(1) + "km",
+                    };
+                }).filter(Boolean) as Place[];
+
+                formatted.sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
+
+                setPlaces(formatted);
+                setLoading(false);
             } catch (error) {
                 console.log(error);
+                setError("Failed to fetch nearby places.");
                 setLoading(false);
             }
         };
-        fetchPlaces();
+        navigator.geolocation.getCurrentPosition(async (position) => {
+            const { latitude, longitude } = position.coords;
+
+            fetchPlaces(latitude, longitude);
+        },  
+        (error) => {
+            console.log(error);
+            setError(error.message);
+            setLoading(false);
+        }, 
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+           maximumAge: 0,
+        });
     }, [type]);
 
     return(
