@@ -25,7 +25,7 @@ export async function POST(req: Request) {
             controller.abort();
         }, 8000);
 
-        const res = await fetch("https://overpass.kumi.systems/api/interpreter", {
+        const res = await fetch("https://overpass.private.coffee/api/interpreter", {
             method: "POST",
             headers: {
                 "Content-Type": "text/plain",
