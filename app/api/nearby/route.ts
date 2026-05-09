@@ -14,8 +14,8 @@ export async function POST(req: Request) {
         const query = `
             [out:json];
             (
-                node["amenity"="${type}"](around:10000,${lat},${lon});
-                way["amenity"="${type}"](around:10000,${lat},${lon});
+                node["amenity"="${type}"](around:5000,${lat},${lon});
+                way["amenity"="${type}"](around:5000,${lat},${lon});
             );
             out center;
         `;
