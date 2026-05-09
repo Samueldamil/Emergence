@@ -1,50 +1,51 @@
-import { error } from "console";
 import { NextResponse } from "next/server";
 
-export const runtime = "edge";
+export async function POST() {
+    return NextResponse.json({
+        success: true,
+        message: "API route works"
+    });
+    // try {
+    //     const { lat, lon, type } = await req.json();
 
-export async function POST(req: Request) {
-    try {
-        const { lat, lon, type } = await req.json();
+    //     if (!lat || !lon || !type) {
+    //         NextResponse.json({ error: "Missing required field" }, { status: 400 });
+    //     }
 
-        if (!lat || !lon || !type) {
-            NextResponse.json({ error: "Missing required field" }, { status: 400 });
-        }
+    //     const query = `
+    //         [out:json][timeout:8];
+    //         (
+    //             node["amenity"="${type}"](around:5000,${lat},${lon});
+    //         );
+    //         out body 20;
+    //     `;
 
-        const query = `
-            [out:json][timeout:8];
-            (
-                node["amenity"="${type}"](around:5000,${lat},${lon});
-            );
-            out body 20;
-        `;
+    //     const controller = new AbortController();
 
-        const controller = new AbortController();
+    //     const timeout = setTimeout(() => {
+    //         controller.abort();
+    //     }, 8000);
 
-        const timeout = setTimeout(() => {
-            controller.abort();
-        }, 8000);
+    //     const res = await fetch("https://overpass.private.coffee/api/interpreter", {
+    //         method: "POST",
+    //         headers: {
+    //             "Content-Type": "text/plain",
+    //         },
+    //         body: query,
+    //         signal: controller.signal
+    //     });
 
-        const res = await fetch("https://overpass.private.coffee/api/interpreter", {
-            method: "POST",
-            headers: {
-                "Content-Type": "text/plain",
-            },
-            body: query,
-            signal: controller.signal
-        });
+    //     clearTimeout(timeout);
 
-        clearTimeout(timeout);
+    //     if (!res.ok) {
+    //         return NextResponse.json({ error: "Failed to nearby places..." }, { status: 500 });
+    //     }
 
-        if (!res.ok) {
-            return NextResponse.json({ error: "Failed to nearby places..." }, { status: 500 });
-        }
+    //     const data = await res.json();
 
-        const data = await res.json();
-
-        return NextResponse.json(data);
-    } catch (error) {
-        console.log(error);
-        NextResponse.json({ error: "Request timout or server error" }, { status: 500 });
-    }
+    //     return NextResponse.json(data);
+    // } catch (error) {
+    //     console.log(error);
+    //     NextResponse.json({ error: "Request timout or server error" }, { status: 500 });
+    // }
 }
