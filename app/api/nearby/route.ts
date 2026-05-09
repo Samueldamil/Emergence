@@ -12,21 +12,20 @@ export async function POST(req: Request) {
         }
 
         const query = `
-            [out:json];
+            [out:json][timeout:8];
             (
                 node["amenity"="${type}"](around:5000,${lat},${lon});
-                way["amenity"="${type}"](around:5000,${lat},${lon});
             );
-            out center;
+            out body 20;
         `;
 
         const controller = new AbortController();
 
         const timeout = setTimeout(() => {
             controller.abort();
-        }, 20000);
+        }, 8000);
 
-        const res = await fetch("https://overpass-api.de/api/interpreter", {
+        const res = await fetch("https://overpass.kumi.systems/api/interpreter", {
             method: "POST",
             headers: {
                 "Content-Type": "text/plain",
