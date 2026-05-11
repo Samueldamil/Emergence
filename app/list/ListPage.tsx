@@ -10,11 +10,22 @@ import getDistance from "geolib/es/getPreciseDistance";
 type Place = {
     id: number;
     name: string;
-    address: string | null;
-    phone: string | null;
+    address: string;
     lat: number;
     lon: number;
     distance: string;
+};
+
+type GeoApifyResponse = {
+    features: {
+        properties: {
+            place_id: string;
+            name?: string;
+            formatted?: string;
+            lat: number;
+            lon?: number;
+        };
+    }[];
 };
 
 export default function ListPage() {
@@ -26,83 +37,82 @@ export default function ListPage() {
     const [error, setError] = useState("");
     const [places, setPlaces] = useState<Place[]>([]);
 
-    useEffect(() => {
-        if (!type) return;
+   const categoryMap: Record<string, string> = {
+    hospital: "healthcare.hospital",
+    pharmacy: "healthcare.pharmacy",
+    police: "service.police",
+    fire_station: "service.fire_station"
+   };
 
-        const fetchPlaces = async (latitude: number, longitude: number) => {
-            try {
-                const res = await fetch("/api/nearby", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        lat: latitude,
-                        lon: longitude,
-                        type
-                    }),
-                });
+   useEffect(() => {
+    if (!type) return;
 
-                const data = await res.json();
-
-                if (!res.ok) {
-                    setError(data.error || "Failed to fetch places.");
-                    setLoading(false);
-                    return;
-                };
-
-                const formatted = data.elements.map((item: any) => {
-                    const address = [
-                        item.tags?.["addr:housenumber"],
-                        item.tags?.["addr:street"],
-                        item.tags?.["addr:city"],
-                    ].filter(Boolean).join(", ");
-
-                        
-                    const placeLat = item.lat || item.center?.lat;
-                    const placeLon = item.lon || item.center?.lon;
-
-                    if (!placeLat || !placeLon) return null;
-                        
-                    const distanceInMeters = getDistance({ latitude, longitude }, { latitude: placeLat, longitude: placeLon });
-
-                    return {
-                        id: item.id,
-                        name: item.tags?.name || "Unnamed Place",
-                        address: address || null,
-                        phone: item.tags?.phone || null,
-                        lat: placeLat,
-                        lon: placeLon,
-                        distance: (distanceInMeters / 1000).toFixed(1) + "km",
-                    };
-                }).filter(Boolean) as Place[];
-
-                formatted.sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
-
-                setPlaces(formatted);
-                setLoading(false);
-            } catch (error) {
-                console.log(error);
-                setError("Failed to fetch nearby places.");
-                setLoading(false);
-            }
-        };
-        navigator.geolocation.getCurrentPosition(async (position) => {
+    navigator.geolocation.getCurrentPosition(async (position) => {
+        try {
             const { latitude, longitude } = position.coords;
 
-            fetchPlaces(latitude, longitude);
-        },  
-        (error) => {
-            console.log(error);
-            setError(error.message);
+            const category = categoryMap[type];
+
+            if (!category) {
+                setError("Invalid place type");
+                setLoading(false);
+                return;
+            }
+
+            const api_key = process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY;
+
+            if (!api_key) {
+                setError("Missing api key");
+                setLoading(false);
+                return;
+            }
+
+            const url = `https://api.geoapify.com/v2/places?categories=${category}&filter=circle:${longitude},${latitude},5000&bias=proximity:${longitude},${latitude}&limit=20&apiKey=${api_key}`;
+
+            const res = await fetch(url);
+
+            if (!res.ok) {
+                setError("Failed to fetch nearby places");
+                setLoading(false);
+                return;
+            }
+
+            const data: GeoApifyResponse = await res.json();
+
+            const formatted = data.features.map((item: any) => {
+                const props = item.properties;
+
+                const distanceInMeters = getDistance({ latitude, longitude }, { latitude: props.lat, longitude: props.lon });
+
+                return {
+                    id: props.place_id,
+                    name: props.name || "Unnamed Place",
+                    address: props.formatted || "No address available",
+                    lat: props.lat,
+                    lon: props.lon,
+                    distance: (distanceInMeters / 1000).toFixed(1) + "km",
+                };
+            });
+
+            formatted.sort((a: Place, b: Place) => parseFloat(a.distance) - parseFloat(b.distance));
+            setPlaces(formatted);
             setLoading(false);
-        }, 
-        {
-            enableHighAccuracy: true,
-            timeout: 10000,
-           maximumAge: 0,
-        });
-    }, [type]);
+        } catch(error) {
+            console.log(error);
+            setError("Something went wrong.")
+            setLoading(false);
+        }
+    }, 
+    (error) => {
+        console.log(error);
+        setError(error.message);
+        setLoading(false);
+    }, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+    });
+   }, [type]);
 
     return(
         <main className="bg-gray-200 px-4 py-6 min-h-screen">
@@ -117,7 +127,7 @@ export default function ListPage() {
             {loading && <p className="text-gray-600">Finding nearby services...</p>}
             {error && (<p className="text-red-600 font-medium">{error}</p>)}
 
-            {!loading && places.length === 0 && (<p className="text-gray-600">No places found nearby.</p>)}
+            {!loading && places.length === 0 && !error && (<p className="text-gray-600">No places found nearby.</p>)}
 
             <div className="space-y-4">
                 {places.map((place) => (
@@ -126,9 +136,6 @@ export default function ListPage() {
                         <p className="text-xs text-gray-400">{place.distance} away</p>
                         {place.address && (
                             <p className="text-sm text-gray-600">{place.address}</p>
-                        )}
-                        {place.phone && (
-                            <a href={`tel:${place.phone}`} className="text-sm text-blue-500 block">{place.phone}</a>
                         )}
                         
                         <a href={`https://www.google.com/maps?q=${place.lat},${place.lon}`} target="_blank" className="text-sm text-green-600 font-medium">
