@@ -116,9 +116,9 @@ export default function ListPage() {
         }
         setLoading(false);
     }, {
-        enableHighAccuracy: false,
+        enableHighAccuracy: true,
         timeout: 30000,
-        maximumAge: 60000,
+        maximumAge: 0,
     });
    }, [type]);
 
