@@ -67,7 +67,7 @@ export default function ListPage() {
                 return;
             }
 
-            const url = `https://api.geoapify.com/v2/places?categories=${category}&filter=circle:${longitude},${latitude},5000&bias=proximity:${longitude},${latitude}&limit=20&apiKey=${api_key}`;
+            const url = `https://api.geoapify.com/v2/places?categories=${category}&filter=circle:${longitude},${latitude},20000&bias=proximity:${longitude},${latitude}&limit=20&apiKey=${api_key}`;
 
             const res = await fetch(url);
 
@@ -90,7 +90,7 @@ export default function ListPage() {
                     address: props.formatted || "No address available",
                     lat: props.lat,
                     lon: props.lon,
-                    distance: (distanceInMeters / 1000).toFixed(1) + "km",
+                    distance: distanceInMeters < 1000 ? `${distanceInMeters} m` : `${(distanceInMeters / 1000).toFixed(1)} km`,
                 };
             });
 
