@@ -105,12 +105,20 @@ export default function ListPage() {
     }, 
     (error) => {
         console.log(error);
-        setError(error.message);
+        if (error.code === 1) {
+            setError("Location permission denied");
+        } else if (error.code === 2) {
+            setError("Location unavailable");
+        } else if (error.code === 3) {
+            setError("Location request timed out");
+        } else {
+            setError("Failed to get location");
+        }
         setLoading(false);
     }, {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
+        enableHighAccuracy: false,
+        timeout: 30000,
+        maximumAge: 60000,
     });
    }, [type]);
 
