@@ -47,9 +47,17 @@ export default function ListPage() {
    useEffect(() => {
     if (!type) return;
 
-    navigator.geolocation.getCurrentPosition(async (position) => {
+    let fetched = false;
+
+    const watchId = navigator.geolocation.watchPosition(async (position) => {
+        if (fetched) return;
+
         try {
             const { latitude, longitude } = position.coords;
+
+            fetched = true;
+
+            navigator.geolocation.clearWatch(watchId);
 
             const category = categoryMap[type];
 
@@ -120,6 +128,10 @@ export default function ListPage() {
         timeout: 30000,
         maximumAge: 0,
     });
+
+    return () => {
+        navigator.geolocation.clearWatch(watchId);
+    };
    }, [type]);
 
     return(
