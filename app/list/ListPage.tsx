@@ -50,10 +50,18 @@ export default function ListPage() {
     let fetched = false;
 
     const watchId = navigator.geolocation.watchPosition(async (position) => {
-        if (fetched) return;
 
         try {
-            const { latitude, longitude } = position.coords;
+            const { latitude, longitude, accuracy } = position.coords;
+
+            console.log("Location:", latitude, longitude, "Accuracy:", accuracy);
+
+            if (accuracy > 1000) {
+                console.log("Waiting for better GPS accuracy...")
+                return;
+            }
+
+            if (fetched) return;
 
             fetched = true;
 
