@@ -54,8 +54,6 @@ export default function ListPage() {
         try {
             const { latitude, longitude, accuracy } = position.coords;
 
-            alert(`Lat: ${latitude}\nLng: ${longitude}\nAccuracy: ${accuracy}`);
-
             console.log("Location:", latitude, longitude, "Accuracy:", accuracy);
 
             if (accuracy > 1000) {
@@ -85,7 +83,7 @@ export default function ListPage() {
                 return;
             }
 
-            const url = `https://api.geoapify.com/v2/places?categories=${category}&filter=circle:${longitude},${latitude},20000&bias=proximity:${longitude},${latitude}&limit=20&apiKey=${api_key}`;
+            const url = `https://api.geoapify.com/v2/places?categories=${category}&filter=circle:${longitude},${latitude},7000&bias=proximity:${longitude},${latitude}&limit=20&apiKey=${api_key}`;
 
             const res = await fetch(url);
 
