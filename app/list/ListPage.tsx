@@ -54,6 +54,8 @@ export default function ListPage() {
         try {
             const { latitude, longitude, accuracy } = position.coords;
 
+            alert(`Lat: ${latitude}\nLng: ${longitude}\nAccuracy: ${accuracy}`);
+
             console.log("Location:", latitude, longitude, "Accuracy:", accuracy);
 
             if (accuracy > 1000) {
