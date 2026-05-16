@@ -8,12 +8,14 @@ import { useEffect, useState } from "react";
 import getDistance from "geolib/es/getPreciseDistance";
 
 type Place = {
-    id: string;
-    name: string;
-    address: string;
+    id: number;
     lat: number;
     lon: number;
-    distance: string;
+    distance: number;
+    tags: {
+        name?: string,
+        amenity?: string,
+    }
 };
 
 export default function ListPage() {
@@ -25,157 +27,84 @@ export default function ListPage() {
     const [error, setError] = useState("");
     const [places, setPlaces] = useState<Place[]>([]);
 
-   const radiusMap: Record<string, number> = {
-    hospital: 20000,
-    pharmacy: 15000,
-    police: 20000,
-    fire_station: 30000,
+   useEffect(() => {
+    if (type) {
+        getNearbyPlaces(type);
+    };
+   }, [type]);
+
+   const calculateDistance = (
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
+   ) => {
+    const R = 6371;
+
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
    };
 
-   useEffect(() => {
-    if (!type) return;
+   const getNearbyPlaces = async (amenity: string) => {
+    navigator.geolocation.getCurrentPosition(async (position) => {
+        const userLat = position.coords.latitude;
+        const userLon = position.coords.longitude;
 
-    let fetched = false;
-
-    const watchId = navigator.geolocation.watchPosition(async (position) => {
+        const query = `
+            [out:json];
+            (
+                node["amenity"="${amenity}"](around:10000,${userLat},${userLon});
+            );
+            out body;
+        `;
 
         try {
-            const { latitude, longitude, accuracy } = position.coords;
-
-            console.log("Location:", latitude, longitude, "Accuracy:", accuracy);
-
-            if (accuracy > 3000) {
-                console.log("Low GPS accuracy, but continuing...", accuracy);
-                return;
-            }
-
-            if (fetched) return;
-
-            fetched = true;
-
-            navigator.geolocation.clearWatch(watchId);
-
-            const radius = radiusMap[type] || 10000;
-
-            let amenityFilter = "";
-
-            if (type === "hospital") {
-                amenityFilter = '["amenity"~"hospital|clinic|doctors"]';
-            } else if (type === "pharmacy") {
-                amenityFilter = '["amenity"="pharmacy"]';
-            } else if (type === "police") {
-                amenityFilter = '["amenity"="police"]';
-            } else if (type === "fire_station") {
-                amenityFilter = '["amenity"="fire_station"]';
-            }
-
-            const query = `
-                [out:json][timeout:25];
-                (
-                    node${amenityFilter}(around:${radius},${latitude},${longitude});
-                    way${amenityFilter}(around:${radius},${latitude},${longitude});
-                    relation${amenityFilter}(around:${radius},${latitude},${longitude});
-                );
-                out body center;
-            `
-
-            const controller = new AbortController();
-
-            const timeout = setTimeout(() => {
-                controller.abort();
-            }, 45000);
-
-            console.log(query);
-
             const res = await fetch("https://overpass.private.coffee/api/interpreter", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                },
-                body: `data=${encodeURIComponent(query)}`,
-                signal: controller.signal,
+                body: query,
             });
-
-            clearTimeout(timeout);
-
-            if (!res.ok) {
-                console.log(res.status);
-
-                const errorText = await res.text();
-                console.log(errorText);
-
-                setError("Failed to fetch nearby places");
-                setLoading(false);
-                return;
-            }
 
             const data = await res.json();
 
-            console.log(data);
+            const formatted = data.elements.map((place: any) => ({
+                ...place,
+                distance: calculateDistance(
+                    userLat,
+                    userLon,
+                    place.lat,
+                    place.lon
+                ),
+            }));
 
-            const formatted = data.elements.map((item: any) => {
-                const placeLat = item.lat || item.center?.lat;
-                const placeLon = item.lon || item.center?.lon;
+            formatted.sort((a: Place, b: Place) => {
+                a.distance - b.distance;
+            });
 
-                if (!placeLat || !placeLon) return  null;
-
-                const distanceInMeters = getDistance({ latitude, longitude }, { latitude: placeLat, longitude: placeLon });
-
-                const address = [
-                    item.tags?.["addr:housenumber"],
-                    item.tags?.["addr:street"],
-                    item.tags?.["addr:city"],
-                    item.tags?.["addr:district"],
-                    item.tags?.["addr:state"],
-                ].filter(Boolean).join(", ");
-
-                const fallbackAddress = address || item.tags?.["addr:full"] || item.tags?.["contact:address"] || `${placeLat.toFixed(5)}` || `${placeLon.toFixed(5)}`;
-
-                return {
-                    id: item.id.toString(),
-                    name: item.tags?.name || "Unnamed Place",
-                    address: fallbackAddress,
-                    lat: placeLat,
-                    lon: placeLon,
-                    distance: distanceInMeters < 1000 ? `${distanceInMeters} m` : `${(distanceInMeters / 1000).toFixed(1)} km`,
-                };
-            }).filter(Boolean);
-
-            formatted.sort((a: Place, b: Place) => parseFloat(a.distance) - parseFloat(b.distance));
-            setPlaces(formatted as Place[]);
-            setLoading(false);
-        } catch(error: any) {
-            console.log(error);
-           if (error.name === "AbortError") {
-            setError("Request Timeout");
-           } else {
-            setError("Something went wrong.");
-           }
+            setPlaces(formatted);
+        } catch (error) {
+            console.log(error)
+            setError("Something went wrong")
+        } finally {
             setLoading(false);
         }
-    }, 
+    },
     (error) => {
         console.log(error);
-        if (error.code === 1) {
-            setError("Location permission denied");
-        } else if (error.code === 2) {
-            setError("Location unavailable");
-        } else if (error.code === 3) {
-            setError("Location request timed out");
-        } else {
-            setError("Failed to get location");
-        }
         setLoading(false);
-    }, {
-        enableHighAccuracy: true,
-        timeout: 60000,
-        maximumAge: 0,
     });
+   };
 
-    return () => {
-        navigator.geolocation.clearWatch(watchId);
-    };
-   }, [type]);
+   const formatDistance = (distance: number) => {
+    if (distance < 1) {
+        return `${Math.round(distance * 1000)}m away`;
+    }
+    return `${distance.toFixed(1)}km away`;
+   }
 
     return(
         <main className="bg-gray-200 px-4 py-6 min-h-screen">
@@ -195,11 +124,9 @@ export default function ListPage() {
             <div className="space-y-4">
                 {places.map((place) => (
                     <div key={place.id} className="bg-white p-4 rounded-xl shadow-md">
-                        <h2 className="font-semibold text-lg">{place.name}</h2>
-                        <p className="text-xs text-gray-400">{place.distance} away</p>
-                        {place.address && (
-                            <p className="text-sm text-gray-600">{place.address}</p>
-                        )}
+                        <h2 className="font-semibold text-lg">{place.tags.name || "Unnamed place"}</h2>
+                        <p className="text-xs text-gray-400">{formatDistance(place.distance)}</p>
+                        <p className="text-sm text-gray-600">{place.tags.amenity?.replace("_", " ")}</p>
                         
                         <a href={`https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lon}`} target="_blank" className="text-sm text-green-600 font-medium">
                             Get Direction
