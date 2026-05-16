@@ -5,7 +5,6 @@ export const dynamic = "force-dynamic";
 import { IoArrowBack } from "react-icons/io5";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import getDistance from "geolib/es/getPreciseDistance";
 
 type Place = {
     id: number;
@@ -58,7 +57,7 @@ export default function ListPage() {
         const query = `
             [out:json];
             (
-                node["amenity"="${amenity}"](around:10000,${userLat},${userLon});
+                node["amenity"="${amenity}"](around:15000,${userLat},${userLon});
             );
             out body;
         `;
