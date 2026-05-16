@@ -45,8 +45,8 @@ export default function ListPage() {
             console.log("Location:", latitude, longitude, "Accuracy:", accuracy);
 
             if (accuracy > 3000) {
-                console.log("Low GPS accuracy, but continuing...");
-                accuracy;
+                console.log("Low GPS accuracy, but continuing...", accuracy);
+                return;
             }
 
             if (fetched) return;
