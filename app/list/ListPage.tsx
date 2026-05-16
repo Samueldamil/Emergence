@@ -166,9 +166,9 @@ export default function ListPage() {
         }
         setLoading(false);
     }, {
-        enableHighAccuracy: true,
+        enableHighAccuracy: false,
         timeout: 30000,
-        maximumAge: 0,
+        maximumAge: 60000,
     });
 
     return () => {
