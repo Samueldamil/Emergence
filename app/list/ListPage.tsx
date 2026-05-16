@@ -8,24 +8,12 @@ import { useEffect, useState } from "react";
 import getDistance from "geolib/es/getPreciseDistance";
 
 type Place = {
-    id: number;
+    id: string;
     name: string;
     address: string;
     lat: number;
     lon: number;
     distance: string;
-};
-
-type GeoApifyResponse = {
-    features: {
-        properties: {
-            place_id: string;
-            name?: string;
-            formatted?: string;
-            lat: number;
-            lon?: number;
-        };
-    }[];
 };
 
 export default function ListPage() {
@@ -37,11 +25,11 @@ export default function ListPage() {
     const [error, setError] = useState("");
     const [places, setPlaces] = useState<Place[]>([]);
 
-   const categoryMap: Record<string, string> = {
-    hospital: "healthcare.hospital",
-    pharmacy: "healthcare.pharmacy",
-    police: "service.police",
-    fire_station: "service.fire_station"
+   const radiusMap: Record<string, number> = {
+    hospital: 20000,
+    pharmacy: 15000,
+    police: 20000,
+    fire_station: 30000,
    };
 
    useEffect(() => {
@@ -56,9 +44,8 @@ export default function ListPage() {
 
             console.log("Location:", latitude, longitude, "Accuracy:", accuracy);
 
-            if (accuracy > 1000) {
-                console.log("Waiting for better GPS accuracy...")
-                return;
+            if (accuracy > 3000) {
+                console.log("Low GPS accuracy, but continuing...");
             }
 
             if (fetched) return;
@@ -67,55 +54,102 @@ export default function ListPage() {
 
             navigator.geolocation.clearWatch(watchId);
 
-            const category = categoryMap[type];
+            const radius = radiusMap[type] || 10000;
 
-            if (!category) {
-                setError("Invalid place type");
-                setLoading(false);
-                return;
+            let amenityFilter = "";
+
+            if (type === "hospital") {
+                amenityFilter = '["amenity"~"hospital|clinic|doctors"]';
+            } else if (type === "pharmacy") {
+                amenityFilter = '["amenity"="pharmacy"]';
+            } else if (type === "police") {
+                amenityFilter = '["amenity"="police"]';
+            } else if (type === "fire_station") {
+                amenityFilter = '["amenity"="fire_station"]';
             }
 
-            const api_key = process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY;
+            const query = `
+                [out:json][timeout:25];
+                (
+                    node${amenityFilter}(around:${radius},${latitude},${longitude});
+                    way${amenityFilter}(around:${radius},${latitude},${longitude});
+                    relation${amenityFilter}(around:${radius},${latitude},${longitude});
+                );
+                out body center;
+            `
 
-            if (!api_key) {
-                setError("Missing api key");
-                setLoading(false);
-                return;
-            }
+            const controller = new AbortController();
 
-            const url = `https://api.geoapify.com/v2/places?categories=${category}&filter=circle:${longitude},${latitude},7000&bias=proximity:${longitude},${latitude}&limit=20&apiKey=${api_key}`;
+            const timeout = setTimeout(() => {
+                controller.abort();
+            }, 45000);
 
-            const res = await fetch(url);
+            console.log(query);
+
+            const res = await fetch("https://overpass.private.coffee/api/interpreter", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: `data=${encodeURIComponent(query)}`,
+                signal: controller.signal,
+            });
+
+            clearTimeout(timeout);
 
             if (!res.ok) {
+                console.log(res.status);
+
+                const errorText = await res.text();
+                console.log(errorText);
+
                 setError("Failed to fetch nearby places");
                 setLoading(false);
                 return;
             }
 
-            const data: GeoApifyResponse = await res.json();
+            const data = await res.json();
 
-            const formatted = data.features.map((item: any) => {
-                const props = item.properties;
+            console.log(data);
 
-                const distanceInMeters = getDistance({ latitude, longitude }, { latitude: props.lat, longitude: props.lon });
+            const formatted = data.elements.map((item: any) => {
+                const placeLat = item.lat || item.center?.lat;
+                const placeLon = item.lon || item.center?.lon;
+
+                if (!placeLat || !placeLon) return  null;
+
+                const distanceInMeters = getDistance({ latitude, longitude }, { latitude: placeLat, longitude: placeLon });
+
+                const address = [
+                    item.tags?.["addr:housenumber"],
+                    item.tags?.["addr:street"],
+                    item.tags?.["addr:city"],
+                    item.tags?.["addr:district"],
+                    item.tags?.["addr:state"],
+                ].filter(Boolean).join(", ");
+
+                const fallbackAddress = address || item.tags?.["addr:full"] || item.tags?.["contact:address"] || `${placeLat.toFixed(5)}` || `${placeLon.toFixed(5)}`;
 
                 return {
-                    id: props.place_id,
-                    name: props.name || "Unnamed Place",
-                    address: props.formatted || "No address available",
-                    lat: props.lat,
-                    lon: props.lon,
+                    id: item.id.toString(),
+                    name: item.tags?.name || "Unnamed Place",
+                    address: fallbackAddress,
+                    lat: placeLat,
+                    lon: placeLon,
                     distance: distanceInMeters < 1000 ? `${distanceInMeters} m` : `${(distanceInMeters / 1000).toFixed(1)} km`,
                 };
-            });
+            }).filter(Boolean);
 
             formatted.sort((a: Place, b: Place) => parseFloat(a.distance) - parseFloat(b.distance));
-            setPlaces(formatted);
+            setPlaces(formatted as Place[]);
             setLoading(false);
-        } catch(error) {
+        } catch(error: any) {
             console.log(error);
-            setError("Something went wrong.")
+           if (error.name === "AbortError") {
+            setError("Request Timeout");
+           } else {
+            setError("Something went wrong.");
+           }
             setLoading(false);
         }
     }, 
@@ -166,7 +200,7 @@ export default function ListPage() {
                             <p className="text-sm text-gray-600">{place.address}</p>
                         )}
                         
-                        <a href={`https://www.google.com/maps?q=${place.lat},${place.lon}`} target="_blank" className="text-sm text-green-600 font-medium">
+                        <a href={`https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lon}`} target="_blank" className="text-sm text-green-600 font-medium">
                             Get Direction
                         </a>
                     </div>
