@@ -67,7 +67,15 @@ export default function ListPage() {
             const res = await fetch("https://overpass.private.coffee/api/interpreter", {
                 method: "POST",
                 body: query,
+                headers: {
+                    "Content-Type": "text/plain",
+                },
+                signal: AbortSignal.timeout(15000),
             });
+
+            if (!res.ok) {
+                throw new Error(`HTTP Error ${res.status}`);
+            }
 
             const data = await res.json();
 
@@ -82,13 +90,13 @@ export default function ListPage() {
             }));
 
             formatted.sort((a: Place, b: Place) => {
-                a.distance - b.distance;
+                 return a.distance - b.distance;
             });
 
             setPlaces(formatted);
-        } catch (error) {
+        } catch (error: any) {
             console.log(error)
-            setError("Something went wrong")
+            setError(error.message || "Something went wrong")
         } finally {
             setLoading(false);
         }
