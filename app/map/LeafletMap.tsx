@@ -13,8 +13,8 @@ type Place = {
     lon: number;
     distance: number;
     tags: {
-        name: string;
-        amenity: string;
+        name?: string;
+        amenity?: string;
     };
 };
 
@@ -52,7 +52,19 @@ export default function LeafletMap() {
         },
         (error) => {
             console.log(error);
-            setError(error.message);
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    setError("Location permission denied.");
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    setError("Location unavailable");
+                    break;
+                case error.TIMEOUT:
+                    setError("Location request timed out.");
+                    break;
+                default:
+                    setError("Unable tor etrieve location");
+            }
             setLoading(false);
         }, {
             enableHighAccuracy: true,
@@ -81,22 +93,16 @@ export default function LeafletMap() {
     };
 
     const getNearbyPlaces = async(amenity: string, userLat: number, userLon: number) => {
-        const query = `
-            [out:json][timeout:25];
-            (
-                node["amenity"="${amenity}"](around:10000,${userLat},${userLon});
-            );
-            out center qt;
-        `;
+       
 
         try {
-            const res = await fetch("https://lz4.overpass-api.de/api/interpreter", {
-                method: "POST",
-                body: query,
-                headers: {
-                    "Content-Type": "text/plain",
-                },
-            });
+           const res = await fetch("/api/places", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ amenity, lat: userLat, lon: userLon }),
+           });
 
             if (!res.ok) {
                 throw new Error(`HTTP Error: ${res.status}`);
