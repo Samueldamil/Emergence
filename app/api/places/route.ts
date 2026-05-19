@@ -15,15 +15,12 @@ export async function POST(req: NextRequest) {
             (
                 node["amenity"="${amenity}"](around:10000,${lat},${lon});
             );
-            out center qt;
+            out center;
         `;
 
          const res = await fetch("https://lz4.overpass-api.de/api/interpreter", {
             method: "POST",
             body: query,
-            headers: {
-                "Content-Type": "text/plain",
-            },
         });
 
         if (!res.ok) {
