@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
         }
 
        const categoryMap: Record<string, string> = {
-        hospital: "healthcare.hospital",
+        hospital: "healthcare.hospital,healthcare.clinic",
         pharmacy: "healthcare.pharmacy",
         police: "service.police",
         fire_station: "service.fire_station",
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
 
        const category = categoryMap[amenity] || "healthcare.hospital";
 
-       const url = `https://api.geoapify.com/v2/places?categories=${category}&filter=circle:${lon},${lat},5000&limit=20&apiKey=${process.env.GEOAPIFY_API_KEY}`;
+       const url = `https://api.geoapify.com/v2/places?categories=${category}&filter=circle:${lon},${lat},10000&limit=20&apiKey=${process.env.GEOAPIFY_API_KEY}`;
 
         const res = await fetch(url);
 
