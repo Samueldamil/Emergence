@@ -8,7 +8,7 @@ import L from "leaflet";
 import { IoArrowBack } from "react-icons/io5";
 
 type Place = {
-    id: number;
+    id: string;
     lat: number;
     lon: number;
     distance: number;
@@ -21,7 +21,7 @@ type Place = {
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 
 L.Icon.Default.mergeOptions({
-    iconRetinalUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+    iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
     iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
     shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
@@ -63,12 +63,12 @@ export default function LeafletMap() {
                     setError("Location request timed out.");
                     break;
                 default:
-                    setError("Unable tor etrieve location");
+                    setError("Unable to retrieve location");
             }
             setLoading(false);
         }, {
             enableHighAccuracy: true,
-            timeout: 30000,
+            timeout: 60000,
             maximumAge: 0,
         });
     }, [type]);
@@ -110,9 +110,15 @@ export default function LeafletMap() {
 
             const data = await res.json();
 
-            const formatted = data.elements.map((place: any) => ({
-                ...place,
-                distance: calculateDistance(userLat, userLon, place.lat, place.lon),
+            const formatted = data.features.map((place: any) => ({
+                id: place.properties.place_id,
+                lat: place.geometry.coordinates[1],
+                lon: place.geometry.coordinates[0],
+                tags: {
+                    name: place.properties.name,
+                    ameniity: place.properties.categories?.[0],
+                },
+                distance: calculateDistance(userLat, userLon, place.geometry.coordinates[1], place.geometry.coordinates[0]),
             }));
 
             formatted.sort((a: Place, b: Place) => a.distance - b.distance);

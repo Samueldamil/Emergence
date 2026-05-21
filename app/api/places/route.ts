@@ -10,29 +10,29 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Missing required fields"}, { status: 400 });
         }
 
-        const query = `
-            [out:json][timeout:25];
-            (
-                node["amenity"="${amenity}"](around:10000,${lat},${lon});
-            );
-            out center;
-        `;
+       const categoryMap: Record<string, string> = {
+        hospital: "healthcare.hospital",
+        pharmacy: "healthcare.pharmacy",
+        police: "service.police",
+        fire_station: "service.fire_station",
+       };
 
-         const res = await fetch("https://lz4.overpass-api.de/api/interpreter", {
-            method: "POST",
-            body: query,
-        });
+       const category = categoryMap[amenity] || "healthcare.hospital";
+
+       const url = `https://api.geoapify.com/v2/places?categories=${category}&filter=circle:${lon},${lat},5000&limit=20&apiKey=${process.env.GEOAPIFY_API_KEY}`;
+
+        const res = await fetch(url);
 
         if (!res.ok) {
-            return NextResponse.json({ error: `Overpass Error: ${res.status}}`}, {status: res.status});
+            return NextResponse.json({ error: `Geoapify Error: ${res.status}` }, { status: res.status });
         }
 
         const data = await res.json();
 
         return NextResponse.json(data);
-    } catch (error) {
+    } catch (error: any) {
         console.error(error);
-        return NextResponse.json({ error: "Failed to fetch nearby places."}, { status: 500 });
+        return NextResponse.json({ error: error.message || "Server Error" }, { status: 500 });
 
     }
 }
