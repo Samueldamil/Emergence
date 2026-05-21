@@ -110,16 +110,22 @@ export default function LeafletMap() {
 
             const data = await res.json();
 
-            const formatted = data.features.map((place: any) => ({
-                id: place.properties.place_id,
-                lat: place.geometry.coordinates[1],
-                lon: place.geometry.coordinates[0],
-                tags: {
-                    name: place.properties.name,
-                    ameniity: place.properties.categories?.[0],
-                },
-                distance: calculateDistance(userLat, userLon, place.geometry.coordinates[1], place.geometry.coordinates[0]),
-            }));
+            const raw = data.data?.features || data.data?.elements || [];
+
+            const formatted = raw.map((place: any) => {
+                const lat = place.geometry.coordinates[1] || place.lat;
+                const lon = place.geometry.coordinates[0] || place.lon;
+                
+                return {
+                    id: place.properties.place_id || place.id,
+                    lat,
+                    lon,
+                    tags: {
+                        name: place.properties.name || place.tags?.name,
+                        amenity: place.properties.categories?.[0] || place.tags?.amenity,
+                    },
+                    distance: calculateDistance(userLat, userLon, lat, lon),
+                }});
 
             formatted.sort((a: Place, b: Place) => a.distance - b.distance);
 
