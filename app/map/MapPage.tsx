@@ -103,7 +103,7 @@ export default function MapPage() {
         hospital: 3000,
         pharmacy: 7000,
         police: 7000,
-        fire_station: 3000,
+        fire_station: 10000,
     }
 
     const searchRadius = radiusMap[type] || 5000;
