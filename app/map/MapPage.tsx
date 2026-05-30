@@ -132,7 +132,7 @@ export default function MapPage() {
                 setPois(unique);
             } catch (error) {
                 console.log(error);
-                setError("Failed to fetch emergency centers");
+                setError(JSON.stringify(error));
             } finally {
                 setLoading(false);
             }
