@@ -156,12 +156,14 @@ export default function MapPage() {
         const query = `
             [out:json];
             (
-                node["amenity"~"${tagMap[type]}"](around:${radius},${lat},${lon});
-                way["amenity"~"${tagMap[type]}"](around:${radius},${lat},${lon});
-                relation["amenity"~"${tagMap[type]}"](around:${radius},${lat},${lon});
+                node["amenity"="${tagMap[type]}"](around:${radius},${lat},${lon});
+                way["amenity"="${tagMap[type]}"](around:${radius},${lat},${lon});
+                relation["amenity"="${tagMap[type]}"](around:${radius},${lat},${lon});
             );
             out center;
             `;
+
+            console.log(query);
 
         const res = await fetch("/api/overpass", {
             method: "POST",
