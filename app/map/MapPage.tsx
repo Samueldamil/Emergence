@@ -163,7 +163,7 @@ export default function MapPage() {
             out center;
             `;
 
-        const res = await fetch("https://overpass-api.de/api/interpreter", {
+        const res = await fetch("/api/overpass", {
             method: "POST",
             body: query,
         });
@@ -172,7 +172,7 @@ export default function MapPage() {
         console.log(tagMap[type]);
 
         if (!res.ok) {
-            console.log("Overpass error:", await res.text());
+            console.error("Overpass error:", await res.text());
             return [];
         }
 
