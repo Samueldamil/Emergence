@@ -117,9 +117,9 @@ export default function MapPage() {
             try {
                 let results: POI[] = [];
 
-                const overpass = await fetchOverpass(location.lat, location.lon, searchRadius, type);
+                // const overpass = await fetchOverpass(location.lat, location.lon, searchRadius, type);
 
-                results = [...results, ...overpass];
+                // results = [...results, ...overpass];
 
                 if ( results.length < 5) {
                     const geo = await fetchGeoapify(location.lat, location.lon, searchRadius, type);
