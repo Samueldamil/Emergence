@@ -132,7 +132,11 @@ export default function MapPage() {
                 setPois(unique);
             } catch (error) {
                 console.log(error);
-                setError(JSON.stringify(error));
+                if (error instanceof Error) {
+                    setError(error.message);
+                } else {
+                    setError(String(error));
+                }
             } finally {
                 setLoading(false);
             }
