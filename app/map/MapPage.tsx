@@ -272,6 +272,10 @@ export default function MapPage() {
                         </h2>
                         <p className="text-gray-600 text-sm">We could not find any nearby emergency centers in your current location.</p>
                         <p className="text-gray-400 text-sm">Try moving to another area or checking internet connection.</p>
+
+                        <p className="text-sm">{location?.lat}</p>
+                        <p className="text-sm">{location?.lon}</p>
+                        <p>{pois.length}</p>
                     </div>
                 </div>
             ) : location && (
