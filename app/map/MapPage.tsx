@@ -101,7 +101,7 @@ export default function MapPage() {
     }, []);
 
     const radiusMap: Record<string, number> = {
-        hospital: 3000,
+        hospital: 20000,
         pharmacy: 7000,
         police: 7000,
         fire_station: 10000,
