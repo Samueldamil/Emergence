@@ -55,6 +55,7 @@ export default function MapPage() {
         lat: number;
         lon: number;
     } | null>(null);
+    const [debug, setDebug] = useState("");
 
     useEffect(() => {
         const loadLeafletIcon = async () => {
@@ -123,6 +124,7 @@ export default function MapPage() {
 
                 if ( results.length < 5) {
                     const geo = await fetchGeoapify(location.lat, location.lon, searchRadius, type);
+                    setDebug(`Overpass: ${overpass.length} | Geoapify: ${geo.length}`);
                     results = [...results, ...geo];
                 }
 
@@ -276,6 +278,7 @@ export default function MapPage() {
                         <p className="text-sm">{location?.lat}</p>
                         <p className="text-sm">{location?.lon}</p>
                         <p>{pois.length}</p>
+                        <p>{debug}</p>
                     </div>
                 </div>
             ) : location && (
