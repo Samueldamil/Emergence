@@ -278,6 +278,7 @@ export default function MapPage() {
                         <p className="text-sm">{location?.lat}</p>
                         <p className="text-sm">{location?.lon}</p>
                         <p>{pois.length}</p>
+                        <p>Radius: {searchRadius}</p>
                         <p>{debug}</p>
                     </div>
                 </div>
