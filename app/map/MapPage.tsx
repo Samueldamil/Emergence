@@ -47,15 +47,27 @@ export default function MapPage() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const type = searchParams.get("type") || "hospital";
+
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [customIcon, setCustomIcon] = useState<any>(null);
+
     const [pois, setPois] = useState<POI[]>([]);
     const [location, setLocation] = useState<{
         lat: number;
         lon: number;
     } | null>(null);
-    const [debug, setDebug] = useState("");
+
+    const labelMap: Record<string, string> = {
+        hospital: "hospitals",
+        pharmacy: "pharmacies",
+        police: "police stations",
+        fire_station: "fire stations",
+    };
+
+    const label = labelMap[type] || "emergency services";
+
+    const googleUrl = `https://www.google.com/maps/search/${encodeURIComponent(label)}/@${location?.lat},${location?.lon},14z`;
 
     useEffect(() => {
         const loadLeafletIcon = async () => {
@@ -101,7 +113,7 @@ export default function MapPage() {
     }, []);
 
     const radiusMap: Record<string, number> = {
-        hospital: 20000,
+        hospital: 5000,
         pharmacy: 7000,
         police: 7000,
         fire_station: 10000,
@@ -124,7 +136,6 @@ export default function MapPage() {
 
                 if ( results.length < 5) {
                     const geo = await fetchGeoapify(location.lat, location.lon, searchRadius, type);
-                    setDebug(`Overpass: ${overpass.length} | Geoapify: ${geo.length}`);
                     results = [...results, ...geo];
                 }
 
@@ -243,9 +254,6 @@ export default function MapPage() {
         return <p className="flex items-center justify-center h-screen w-full text-red-500 text-sm">{error}</p>
     }
 
-    console.log(pois);
-    console.log(pois.length);
-
     return(
         <main className="h-screen relative w-full">
             <button onClick={() => router.back()} className="absolute top-4 left-4 z-[1000] bg-white shadow-lg p-2 rounded-full hover:bg-gray-500 transition duration-600">
@@ -272,14 +280,12 @@ export default function MapPage() {
                             No Nearby{" "}
                             {type.replace("_", " ")} Found
                         </h2>
-                        <p className="text-gray-600 text-sm">We could not find any nearby emergency centers in your current location.</p>
-                        <p className="text-gray-400 text-sm">Try moving to another area or checking internet connection.</p>
+                        <p className="text-gray-600 text-sm">Our database could not find nearby {label} in your current location,</p>
+                        <p className="text-gray-400 text-sm">Search Google Map for additional results.</p>
 
-                        <p className="text-sm">{location?.lat}</p>
-                        <p className="text-sm">{location?.lon}</p>
-                        <p>{pois.length}</p>
-                        <p>Radius: {searchRadius}</p>
-                        <p>{debug}</p>
+                        <a href={googleUrl} target="_blank" rel="noopener noreferrer" className="bg-blue-600 text-white px-4 py-2 rounded-lg">
+                            Search on Google Map
+                        </a>
                     </div>
                 </div>
             ) : location && (
