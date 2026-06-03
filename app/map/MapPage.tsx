@@ -19,6 +19,7 @@ const MapContainer = dynamic(async () => (await import("react-leaflet")).MapCont
 const TileLayer = dynamic(async () => (await import("react-leaflet")).TileLayer, { ssr: false });
 const Marker = dynamic(async () => (await import("react-leaflet")).Marker, { ssr: false });
 const Popup = dynamic(async () => (await import("react-leaflet")).Popup, { ssr: false });
+const ZoomControl = dynamic(async () => (await import("react-leaflet")).ZoomControl, { ssr: false });
 
 function calculateDistance(
     lat1: number,
@@ -176,15 +177,10 @@ export default function MapPage() {
             out center;
             `;
 
-            console.log(query);
-
         const res = await fetch("/api/overpass", {
             method: "POST",
             body: query,
         });
-
-        console.log(type);
-        console.log(tagMap[type]);
 
         if (!res.ok) {
             console.error("Overpass error:", await res.text());
@@ -273,7 +269,7 @@ export default function MapPage() {
                 </div>
             )}
 
-            {!loading && pois.length === 0 ? (
+            {!loading && pois.length === 0 && (
                 <div className="h-screen w-full flex items-center justify-center px-6">
                     <div className="bg-white shadow-xl rounded-2xl p-6 max-w-sm text-center space-y-4">
                         <h2 className="text-xl font-bold text-red-500">
@@ -288,29 +284,34 @@ export default function MapPage() {
                         </a>
                     </div>
                 </div>
-            ) : location && (
-                    <MapContainer center={[location.lat, location.lon]} zoom={14} className="h-full w-full">
-                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
+            )}
 
-                    <Marker position={[location.lat, location.lon]} icon={customIcon}>
-                        <Popup>You are here</Popup>
-                    </Marker>
+            {!loading && location && pois.length > 0 && (
+                    <MapContainer center={[location.lat, location.lon]} zoom={14} zoomControl={false} className="h-full w-full">
 
-                    {pois.map((poi, index) => (
-                        <Marker key={index} position={[poi.lat, poi.lon]} icon={customIcon}>
-                            <Popup>
-                                <div className="space-y-2">
-                                    <h2 className="font-bold">{poi.name}</h2>
-                                    <p className="text-sm capitalize text-gray-600">{poi.type}</p>
-                                    <p className="text-sm font-medium text-red-500">{poi.distance < 1 ? `${Math.round(poi.distance * 1000)}m away` : `${poi.distance.toFixed(1)}km away`}</p>
-                                    <p className="text-sm text-green-600 font-medium">Source: {poi.source}</p>
-                                    <a href={`https://www.google.com/maps/dir/?api=1&destination=${poi.lat},${poi.lon}`} target="_blank" className="text-blue-600 underline text-sm">
-                                        Get Direction
-                                    </a>
-                                </div>
-                            </Popup>
+                        <ZoomControl position="bottomright" />
+
+                        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
+
+                        <Marker position={[location.lat, location.lon]} icon={customIcon}>
+                            <Popup>You are here</Popup>
                         </Marker>
-                    ))}
+
+                        {pois.map((poi, index) => (
+                            <Marker key={index} position={[poi.lat, poi.lon]} icon={customIcon}>
+                                <Popup>
+                                    <div className="space-y-2">
+                                        <h2 className="font-bold">{poi.name}</h2>
+                                        <p className="text-sm capitalize text-gray-600">{poi.type}</p>
+                                        <p className="text-sm font-medium text-red-500">{poi.distance < 1 ? `${Math.round(poi.distance * 1000)}m away` : `${poi.distance.toFixed(1)}km away`}</p>
+                                        <p className="text-sm text-green-600 font-medium">Source: {poi.source}</p>
+                                        <a href={`https://www.google.com/maps/dir/?api=1&destination=${poi.lat},${poi.lon}`} target="_blank" className="text-blue-600 underline text-sm">
+                                            Get Direction
+                                        </a>
+                                    </div>
+                                </Popup>
+                            </Marker>
+                        ))}
                     </MapContainer>
                 )
             }
