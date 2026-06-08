@@ -307,7 +307,6 @@ export default function MapPage() {
                                         <p className="text-sm capitalize text-gray-600">{poi.type}</p>
                                         <p className="text-sm font-medium text-red-500">{poi.distance < 1 ? `${Math.round(poi.distance * 1000)}m away` : `${poi.distance.toFixed(1)}km away`}</p>
                                         <p className="text-sm text-green-600 font-medium">Source: {poi.source}</p>
-                                        <p className="text-xs">{poi.lat}, {poi.lon}</p>
                                         <a href={`https://www.google.com/maps/dir/?api=1&destination=${poi.lat},${poi.lon}`} target="_blank" className="block w-full bg-blue-500 text-center py-2 px-4 rounded-lg">
                                             <span className="text-white font-medium">
                                                 Navigate with Google Maps

@@ -49,7 +49,7 @@ export default function SelectEmergency() {
                     {options.map((option) => (
                         <button 
                             key={option.type}
-                            onClick={() => router.push(`/map?type=${option.type}`)}
+                            onClick={() => router.push(`/select/map?type=${option.type}`)}
                             className="bg-white shadow-md rounded-xl p-4 hover:bg-red-100 transition duration-600 flex flex-col items-center justify-center gap-2"
                         >
                             {option.icon}
