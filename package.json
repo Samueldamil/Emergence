@@ -12,6 +12,7 @@
     "@tailwindcss/postcss": "^4.2.4",
     "geolib": "^3.3.14",
     "leaflet": "^1.9.4",
+    "lottie-react": "^2.4.1",
     "next": "16.2.4",
     "postcss": "^8.5.12",
     "react": "19.2.4",

@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import "leaflet/dist/leaflet.css";
 import dynamic from "next/dynamic";
 import { IoArrowBack } from "react-icons/io5";
+import LoadingSearch from "@/component/LoadingSearch";
 
 type POI = {
     name: string;
@@ -52,6 +53,7 @@ export default function MapPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [customIcon, setCustomIcon] = useState<any>(null);
+    const [userIcon, setUserIcon] = useState<any>(null);
 
     const [pois, setPois] = useState<POI[]>([]);
     const [location, setLocation] = useState<{
@@ -84,7 +86,17 @@ export default function MapPage() {
                 shadowSize: [41, 41],
             });
 
+            const redIcon = L.icon({
+                iconUrl: "/leaflet/marker-icon-red.png",
+                shadowUrl: "/leaflet/marker-shadow.png",
+                iconSize: [32, 52],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41],
+            });
+
             setCustomIcon(icon);
+            setUserIcon(redIcon);
         };
 
         loadLeafletIcon();
@@ -242,7 +254,7 @@ export default function MapPage() {
         );
     }
 
-    if (!customIcon) return null;
+    if (!customIcon || !userIcon) return null;
 
     if (error) {
         return <p className="flex items-center justify-center h-screen w-full text-red-500 text-sm">{error}</p>
@@ -262,9 +274,7 @@ export default function MapPage() {
             </div>
 
             {loading && (
-                <div className="h-screen w-full flex items-center justify-center">
-                    <p className="text-lg font-md">Searching nearby emergency centers...</p>
-                </div>
+                <LoadingSearch />
             )}
 
             {!loading && pois.length === 0 && (
@@ -291,7 +301,7 @@ export default function MapPage() {
 
                         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
 
-                        <Marker position={[location.lat, location.lon]} icon={customIcon}>
+                        <Marker position={[location.lat, location.lon]} icon={userIcon}>
                             <Popup>You are here</Popup>
                         </Marker>
 
